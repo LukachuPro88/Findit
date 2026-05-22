@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::collections::HashSet;
 use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,6 +15,7 @@ pub enum Level {
 
 static CURRENT_LEVEL: Mutex<Level> = Mutex::new(Level::DEBUG);
 static PREVIOUS_LEVEL: Mutex<Level> = Mutex::new(Level::DEBUG);
+static DISABLED_LEVELS: Mutex<Option<HashSet<u8>>> = Mutex::new(None);
 
 pub fn toggle() {
     let mut current = CURRENT_LEVEL.lock().unwrap();
@@ -35,13 +37,35 @@ pub fn set_level(level: Level) {
     *current = level;
 }
 
+pub fn disable_level(level: Level) {
+    let mut disabled = DISABLED_LEVELS.lock().unwrap();
+    disabled
+        .get_or_insert_with(HashSet::new)
+        .insert(level as u8);
+}
+
+pub fn enable_level(level: Level) {
+    let mut disabled = DISABLED_LEVELS.lock().unwrap();
+    if let Some(set) = disabled.as_mut() {
+        set.remove(&(level as u8));
+    }
+}
+
 pub(crate) fn should_log(level: Level) -> bool {
     let current = CURRENT_LEVEL.lock().unwrap();
     if *current == Level::NONE {
         return false;
     }
-
-    level as u8 >= *current as u8
+    let level_u8 = level as u8;
+    let current_u8 = *current as u8;
+    if level_u8 < current_u8 {
+        return false;
+    }
+    let disabled = DISABLED_LEVELS.lock().unwrap();
+    if let Some(set) = disabled.as_ref() {
+        return !set.contains(&level_u8);
+    }
+    true
 }
 
 pub mod color {
