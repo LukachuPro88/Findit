@@ -2,5 +2,9 @@
 name = "findit"
 version = "0.1.0"
 edition = "2024"
+description = "A fast, lightweight command-line filesystem search tool"
+license = "MIT"
+repository = "https://github.com/LukachuPro88/findit"
+readme = "README.md"
 
 [dependencies]
