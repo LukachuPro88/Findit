@@ -65,12 +65,12 @@ Set your ignore file once with `findit --ignore <path>` and it will persist acro
 
 ### Cargo
 ```
-cargo install findit
+cargo install findit-rs
 ```
 
 ### curl
 ```
-curl -sSL https://raw.githubusercontent.com/your-username/findit/main/install.sh | sh
+curl -sSL https://raw.githubusercontent.com/LukachuPro88/Findit/main/install.sh | sh
 ```
 
 ---
