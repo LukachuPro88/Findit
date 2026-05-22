@@ -2,25 +2,26 @@ use crate::findit::crawler::crawler;
 use crate::findit::filter::filter;
 use crate::utils::logger;
 use std::env;
+use std::path::PathBuf;
 
 enum Command {
     Dir {
-        start_path: String,
+        start_path: PathBuf,
         name: String,
         verbose: bool,
     },
     File {
-        start_path: String,
+        start_path: PathBuf,
         name: String,
         verbose: bool,
     },
     Word {
-        file_path: String,
+        file_path: PathBuf,
         word: String,
         verbose: bool,
     },
     Ignore {
-        file_path: String,
+        file_path: PathBuf,
     },
 }
 
@@ -29,17 +30,17 @@ fn parse_args() -> Result<Command, String> {
     match args.as_slice() {
         [_, flag, arg1, arg2, verbose] if verbose == "--verbose" => match flag.as_str() {
             "--dir" => Ok(Command::Dir {
-                start_path: arg1.clone(),
+                start_path: PathBuf::from(arg1),
                 name: arg2.clone(),
                 verbose: true,
             }),
             "--file" => Ok(Command::File {
-                start_path: arg1.clone(),
+                start_path: PathBuf::from(arg1),
                 name: arg2.clone(),
                 verbose: true,
             }),
             "--word" => Ok(Command::Word {
-                file_path: arg1.clone(),
+                file_path: PathBuf::from(arg1),
                 word: arg2.clone(),
                 verbose: true,
             }),
@@ -47,17 +48,17 @@ fn parse_args() -> Result<Command, String> {
         },
         [_, flag, arg1, arg2] => match flag.as_str() {
             "--dir" => Ok(Command::Dir {
-                start_path: arg1.clone(),
+                start_path: PathBuf::from(arg1),
                 name: arg2.clone(),
                 verbose: false,
             }),
             "--file" => Ok(Command::File {
-                start_path: arg1.clone(),
+                start_path: PathBuf::from(arg1),
                 name: arg2.clone(),
                 verbose: false,
             }),
             "--word" => Ok(Command::Word {
-                file_path: arg1.clone(),
+                file_path: PathBuf::from(arg1),
                 word: arg2.clone(),
                 verbose: false,
             }),
@@ -65,7 +66,7 @@ fn parse_args() -> Result<Command, String> {
         },
         [_, flag, arg1] => match flag.as_str() {
             "--ignore" => Ok(Command::Ignore {
-                file_path: arg1.clone(),
+                file_path: PathBuf::from(arg1),
             }),
             _ => Err(format!("Unknown flag: {}\n{}", flag, print_usage())),
         },
@@ -99,7 +100,7 @@ pub fn main_cli() {
                         matching_dirs.len()
                     ));
                     for dir in &matching_dirs {
-                        logger::success(&format!("  ~ {}", dir));
+                        logger::success(&format!("  ~ {}", dir.display()));
                     }
                 }
             }
@@ -116,7 +117,7 @@ pub fn main_cli() {
                 } else {
                     logger::success(&format!("Found {} matching files", matching_files.len()));
                     for file in &matching_files {
-                        logger::success(&format!("  ~ {}", file));
+                        logger::success(&format!("  ~ {}", file.display()));
                     }
                 }
             }
@@ -126,8 +127,8 @@ pub fn main_cli() {
                 verbose,
             } => {
                 set_verbose(verbose);
-                if !std::path::Path::new(&file_path).exists() {
-                    logger::error(&format!("File '{}' not found", file_path));
+                if !file_path.exists() {
+                    logger::error(&format!("File '{}' not found", file_path.display()));
                     return;
                 }
                 let lines = crawler::traverse_words(&file_path);
@@ -148,7 +149,7 @@ pub fn main_cli() {
             Command::Ignore { file_path } => {
                 crate::config::update::update_ignore_file_path(&file_path);
                 crate::config::update::persist_ignore_file_path();
-                logger::success(&format!("Ignore file updated to: {}", file_path));
+                logger::success(&format!("Ignore file updated to: {}", file_path.display()));
             }
         },
         Err(e) => println!("{}", e),
