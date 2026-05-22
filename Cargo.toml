@@ -1,5 +1,5 @@
 [package]
-name = "findit-cli"
+name = "findit-rs"
 version = "0.1.0"
 edition = "2024"
 description = "A fast, lightweight command-line filesystem search tool"
