@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "findit"
+name = "findit-cli"
 version = "0.1.0"
