@@ -1,6 +1,7 @@
 mod cli;
 mod config;
 mod findit;
+mod gui;
 mod utils;
 
 #[cfg(target_os = "windows")]
@@ -22,7 +23,7 @@ fn get_platform_config_path() -> std::path::PathBuf {
     path
 }
 
-fn main() {
+fn main() -> Result<(), eframe::Error> {
     utils::set_level(utils::Level::SUCCESS);
 
     let config_path = get_platform_config_path();
@@ -34,5 +35,19 @@ fn main() {
         }
     }
 
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.iter().any(|arg| arg == "--g") || args.iter().any(|arg| arg == "gui") {
+        let native_options = eframe::NativeOptions::default();
+
+        return eframe::run_native(
+            "Findit Desktop Workspace",
+            native_options,
+            Box::new(|_cc| Ok(Box::new(gui::gui::Gui::default()))),
+        );
+    }
+
     cli::cli::main_cli();
+
+    Ok(())
 }
