@@ -5,14 +5,13 @@ set -e
 BINARY="findit"
 INSTALL_DIR="/usr/local/bin"
 REPO="LukachuPro88/Findit"
-VERSION="0.1.0"
 
 OS=$(uname -s)
 ARCH=$(uname -m)
 
 if [ "$OS" != "Linux" ]; then
     echo "Unsupported OS: $OS"
-    echo "Please install via cargo: cargo install findit-rs"
+    echo "This installer script targets Linux environments."
     exit 1
 fi
 
@@ -22,19 +21,27 @@ elif [ "$ARCH" = "aarch64" ]; then
     TARGET="aarch64-unknown-linux-gnu"
 else
     echo "Unsupported architecture: $ARCH"
-    echo "Please install via cargo: cargo install findit-rs"
     exit 1
 fi
 
-URL="https://github.com/$REPO/releases/download/v$VERSION/$BINARY-$TARGET"
+# Automatically detect the latest version tag from your GitHub repository releases
+echo "Fetching latest release version string..."
+VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
-echo "Downloading findit v$VERSION..."
+if [ -z "$VERSION" ]; then
+    echo "Failed to fetch the latest version tag from GitHub."
+    exit 1
+fi
+
+URL="https://github.com/$REPO/releases/download/$VERSION/$BINARY-$TARGET"
+
+echo "Downloading findit $VERSION..."
 curl -sSL "$URL" -o "/tmp/$BINARY"
 chmod +x "/tmp/$BINARY"
 
 echo "Installing to $INSTALL_DIR (may require sudo)..."
 if [ -w "$INSTALL_DIR" ]; then
-    mv "/tmp/$BINARY" "$INSTALL_DIR/$BINARY"
+    mv "/tmp/$BINARY" "$INSTALL_DIR/$BINARY"ge
 else
     sudo mv "/tmp/$BINARY" "$INSTALL_DIR/$BINARY"
 fi

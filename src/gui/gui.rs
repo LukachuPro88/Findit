@@ -1,23 +1,39 @@
-// src/gui.rs
+//! # gui
+//!
+//! Desktop GUI interface for findit using [`eframe`] and [`egui`].
+
 use crate::findit::crawler::crawler;
 use crate::findit::filter::filter;
 use eframe::egui;
 use std::path::Path;
 
+/// The search mode selected in the GUI.
 #[derive(PartialEq, Clone, Copy)]
 pub enum SearchMode {
+    /// Search for directories by name.
     Dir,
+    /// Search for files by name.
     File,
+    /// Search for a word within a file.
     Word,
 }
 
+/// The main GUI application state.
 pub struct Gui {
+    /// The starting path for the search.
     search_start: String,
+    /// The keyword or word to search for.
     search_keyword: String,
+    /// The list of results from the last search.
     search_result: Vec<String>,
+    /// The current search mode.
     search_mode: SearchMode,
 }
 
+/// Performs a search based on `mode` and returns the results as strings.
+///
+/// - [`SearchMode::Dir`] and [`SearchMode::File`] return matching paths.
+/// - [`SearchMode::Word`] returns matching lines formatted as `Line N: content`.
 pub fn get_search_result(mode: SearchMode, keyword: &str, start: &str) -> Vec<String> {
     let path: &Path = Path::new(start);
 

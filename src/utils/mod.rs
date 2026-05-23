@@ -1,15 +1,26 @@
+//! # utils
+//!
+//! Logging levels, output filtering, and ANSI color constants.
+
 #![allow(dead_code)]
 
 use std::collections::HashSet;
 use std::sync::Mutex;
 
+/// Logging level used to filter console output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Level {
+    /// Verbose debug output.
     DEBUG,
+    /// General information.
     INFO,
+    /// Successful operations.
     SUCCESS,
+    /// Non-fatal warnings.
     WARNING,
+    /// Errors and failures.
     ERROR,
+    /// Suppresses all output.
     NONE,
 }
 
@@ -17,6 +28,7 @@ static CURRENT_LEVEL: Mutex<Level> = Mutex::new(Level::DEBUG);
 static PREVIOUS_LEVEL: Mutex<Level> = Mutex::new(Level::DEBUG);
 static DISABLED_LEVELS: Mutex<Option<HashSet<u8>>> = Mutex::new(None);
 
+/// Toggles logging on and off, restoring the previous level when re-enabled.
 pub fn toggle() {
     let mut current = CURRENT_LEVEL.lock().unwrap();
     let mut previous = PREVIOUS_LEVEL.lock().unwrap();
@@ -29,6 +41,7 @@ pub fn toggle() {
     }
 }
 
+/// Sets the current logging level, saving the previous level for [`toggle`].
 pub fn set_level(level: Level) {
     let mut current = CURRENT_LEVEL.lock().unwrap();
     let mut previous = PREVIOUS_LEVEL.lock().unwrap();
@@ -37,6 +50,7 @@ pub fn set_level(level: Level) {
     *current = level;
 }
 
+/// Disables a specific logging level without changing the current level.
 pub fn disable_level(level: Level) {
     let mut disabled = DISABLED_LEVELS.lock().unwrap();
     disabled
@@ -44,6 +58,7 @@ pub fn disable_level(level: Level) {
         .insert(level as u8);
 }
 
+/// Re-enables a previously disabled logging level.
 pub fn enable_level(level: Level) {
     let mut disabled = DISABLED_LEVELS.lock().unwrap();
     if let Some(set) = disabled.as_mut() {
@@ -51,6 +66,7 @@ pub fn enable_level(level: Level) {
     }
 }
 
+/// Returns `true` if the given `level` should be logged based on the current level and disabled levels.
 pub(crate) fn should_log(level: Level) -> bool {
     let current = CURRENT_LEVEL.lock().unwrap();
     if *current == Level::NONE {
@@ -68,6 +84,7 @@ pub(crate) fn should_log(level: Level) -> bool {
     true
 }
 
+/// ANSI color codes for terminal output.
 pub mod color {
     pub const RED: &str = "\x1b[31m";
     pub const GREEN: &str = "\x1b[32m";

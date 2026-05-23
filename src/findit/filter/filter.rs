@@ -1,3 +1,10 @@
+//! # filter
+//!
+//! Filters a list of [`std::path::PathBuf`] items based on a target string.
+
+/// Filters `items` to those whose path ends with `target`.
+///
+/// Matching is case-insensitive on Windows and case-sensitive on Unix.
 pub fn filter<T: AsRef<str>>(items: Vec<std::path::PathBuf>, target: T) -> Vec<std::path::PathBuf> {
     let target_str = target.as_ref();
 

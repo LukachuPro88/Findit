@@ -1,9 +1,17 @@
+//! # update
+//!
+//! Handles updating the project configurations.
+
 use crate::config::IGNORE_FILE_PATH;
 use crate::utils::file;
 use crate::utils::logger;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+/// Returns the Windows configuration directory for findit.
+///
+/// Resolves to `%APPDATA%\Findit`, falling back to an empty path
+/// if `APPDATA` is not set.
 #[cfg(target_os = "windows")]
 fn get_platform_config_dir() -> PathBuf {
     let mut path = PathBuf::from(std::env::var("APPDATA").unwrap_or_default());
@@ -11,6 +19,10 @@ fn get_platform_config_dir() -> PathBuf {
     path
 }
 
+/// Returns the Unix configuration directory for findit.
+///
+/// Resolves to `$HOME/.config/Findit`, falling back to an empty path
+/// if `$HOME` is not set.
 #[cfg(not(target_os = "windows"))]
 fn get_platform_config_dir() -> PathBuf {
     #[allow(deprecated)]
@@ -21,11 +33,18 @@ fn get_platform_config_dir() -> PathBuf {
     path
 }
 
+/// Returns the home directory for the current user.
+///
+/// Falls back to an empty path if the home directory cannot be determined.
 fn get_home_dir() -> PathBuf {
     #[allow(deprecated)]
     std::env::home_dir().unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()))
 }
 
+/// Updates the ignore file path to the given path.
+///
+/// Expands `~` to the home directory if the path starts with `~`.
+/// Logs an error if the [`IGNORE_FILE_PATH`] mutex is poisoned.
 pub fn update_ignore_file_path(path: &Path) {
     let mut expanded = PathBuf::new();
 
@@ -53,6 +72,13 @@ pub fn update_ignore_file_path(path: &Path) {
     }
 }
 
+/// Persists the ignore file path to the platform-specific configuration directory.
+///
+/// Writes the current [`IGNORE_FILE_PATH`] to:
+/// - Windows: `%APPDATA%\Findit\config`
+/// - Unix: `$HOME/.config/Findit/config`
+///
+/// Logs an error if the directory cannot be created or the file cannot be written.
 pub fn persist_ignore_file_path() {
     let mutex = IGNORE_FILE_PATH.get_or_init(|| Mutex::new(PathBuf::new()));
     let guard = mutex.lock().unwrap();

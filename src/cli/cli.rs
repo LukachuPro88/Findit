@@ -1,43 +1,92 @@
+//! # cli
+//!
+//! This module provides the CLI interface for the findit tool.
+//!
+//! Handles parsing and validating command line arguments.
+//!
+//! # Supported Commands
+//!
+//! - `--dir <start_path> <name>` — Search for a directory by name.
+//! - `--file <start_path> <name>` — Search for a file by name.
+//! - `--word <file_path> <word>` — Search for a word in a file.
+//! - `--ignore <file_path>` — Set the ignore file path.
+//!
+//! All commands except `--ignore` support an optional `--verbose` flag.
+
 use crate::findit::crawler::crawler;
 use crate::findit::filter::filter;
 use crate::utils::logger;
 use std::env;
 use std::path::PathBuf;
 
+/// Shared options for filesystem search commands.
+struct SearchOptions {
+    /// The starting path for the search.
+    start_path: PathBuf,
+    /// The name to search for.
+    name: String,
+    /// Enable verbose output.
+    verbose: bool,
+}
+
+/// Represents the command to be executed by the CLI.
 enum Command {
+    /// Directory search command.
     Dir {
-        start_path: PathBuf,
-        name: String,
-        verbose: bool,
+        /// Common search options.
+        options: SearchOptions,
     },
+    /// File search command.
     File {
-        start_path: PathBuf,
-        name: String,
-        verbose: bool,
+        /// Common search options.
+        options: SearchOptions,
     },
+    /// Word search command.
     Word {
+        /// The file path to search in.
         file_path: PathBuf,
+        /// The word to search for.
         word: String,
+        /// Enable verbose output.
         verbose: bool,
     },
+    /// Ignore command.
     Ignore {
+        /// The file path to the ignore file.
         file_path: PathBuf,
     },
 }
 
+/// Parses the command-line arguments into a [`Command`].
+///
+/// # Errors
+///
+/// Returns `Err` with a usage message if:
+/// - An unknown flag is provided.
+/// - The argument count doesn't match any known pattern.
+///
+/// # Examples
+///
+/// ```no_run
+/// parse_args(); // Called internally from main_cli
+/// ```
 fn parse_args() -> Result<Command, String> {
     let args: Vec<String> = env::args().collect();
     match args.as_slice() {
         [_, flag, arg1, arg2, verbose] if verbose == "--verbose" => match flag.as_str() {
             "--dir" => Ok(Command::Dir {
-                start_path: PathBuf::from(arg1),
-                name: arg2.clone(),
-                verbose: true,
+                options: SearchOptions {
+                    start_path: PathBuf::from(arg1),
+                    name: arg2.clone(),
+                    verbose: true,
+                },
             }),
             "--file" => Ok(Command::File {
-                start_path: PathBuf::from(arg1),
-                name: arg2.clone(),
-                verbose: true,
+                options: SearchOptions {
+                    start_path: PathBuf::from(arg1),
+                    name: arg2.clone(),
+                    verbose: true,
+                },
             }),
             "--word" => Ok(Command::Word {
                 file_path: PathBuf::from(arg1),
@@ -48,14 +97,18 @@ fn parse_args() -> Result<Command, String> {
         },
         [_, flag, arg1, arg2] => match flag.as_str() {
             "--dir" => Ok(Command::Dir {
-                start_path: PathBuf::from(arg1),
-                name: arg2.clone(),
-                verbose: false,
+                options: SearchOptions {
+                    start_path: PathBuf::from(arg1),
+                    name: arg2.clone(),
+                    verbose: false,
+                },
             }),
             "--file" => Ok(Command::File {
-                start_path: PathBuf::from(arg1),
-                name: arg2.clone(),
-                verbose: false,
+                options: SearchOptions {
+                    start_path: PathBuf::from(arg1),
+                    name: arg2.clone(),
+                    verbose: false,
+                },
             }),
             "--word" => Ok(Command::Word {
                 file_path: PathBuf::from(arg1),
@@ -74,6 +127,8 @@ fn parse_args() -> Result<Command, String> {
     }
 }
 
+/// Enables `INFO` logging when `verbose` is `true`, otherwise sets level to
+/// [`crate::utils::Level::NONE`].
 fn set_verbose(verbose: bool) {
     if verbose {
         crate::utils::set_level(crate::utils::Level::INFO);
@@ -81,19 +136,28 @@ fn set_verbose(verbose: bool) {
     }
 }
 
+/// The main CLI entry point.
+///
+/// Parses command-line arguments via [`parse_args`] and dispatches to the
+/// appropriate handler for [`Command::Dir`], [`Command::File`],
+/// [`Command::Word`], or [`Command::Ignore`].
+///
+/// Prints a usage message to stdout if argument parsing fails.
+///
+/// # Examples
+///
+/// ```no_run
+/// findit::cli::cli::main_cli();
+/// ```
 pub fn main_cli() {
     match parse_args() {
         Ok(command) => match command {
-            Command::Dir {
-                start_path,
-                name,
-                verbose,
-            } => {
-                set_verbose(verbose);
-                let dirs = crawler::traverse_dirs(&start_path);
-                let matching_dirs = filter::filter(dirs, &name);
+            Command::Dir { options } => {
+                set_verbose(options.verbose);
+                let dirs = crawler::traverse_dirs(&options.start_path);
+                let matching_dirs = filter::filter(dirs, &options.name);
                 if matching_dirs.is_empty() {
-                    logger::error(&format!("Directory '{}' not found", name));
+                    logger::error(&format!("Directory '{}' not found", options.name));
                 } else {
                     logger::success(&format!(
                         "Found {} matching directories",
@@ -104,16 +168,12 @@ pub fn main_cli() {
                     }
                 }
             }
-            Command::File {
-                start_path,
-                name,
-                verbose,
-            } => {
-                set_verbose(verbose);
-                let files = crawler::traverse_files(&start_path);
-                let matching_files = filter::filter(files, &name);
+            Command::File { options } => {
+                set_verbose(options.verbose);
+                let files = crawler::traverse_files(&options.start_path);
+                let matching_files = filter::filter(files, &options.name);
                 if matching_files.is_empty() {
-                    logger::error(&format!("File '{}' not found", name));
+                    logger::error(&format!("File '{}' not found", options.name));
                 } else {
                     logger::success(&format!("Found {} matching files", matching_files.len()));
                     for file in &matching_files {
@@ -156,6 +216,7 @@ pub fn main_cli() {
     }
 }
 
+/// Returns the usage message string.
 fn print_usage() -> String {
     format!(
         "Usage:\n  findit --dir    <start_path> <name>  [--verbose]\n  findit --file   <start_path> <name>  [--verbose]\n  findit --word   <file_path>  <word>  [--verbose]\n  findit --ignore <file_path>"

@@ -1,6 +1,14 @@
+//! # crawler
+//!
+//! Crawler traverses directories and adds each element to the list of elements to search.
+
 use crate::utils::{file, logger};
 use std::path::{Path, PathBuf};
 
+/// Returns `true` if the given path matches any entry in the ignore file.
+///
+/// Reads ignore patterns from [`crate::config::IGNORE_FILE_PATH`].
+/// Returns `false` if the ignore file cannot be read or no patterns match.
 fn should_ignore(path: &Path) -> bool {
     if let Ok(contents) = crate::utils::file::read_ignore_file() {
         for line in contents.iter() {
@@ -12,6 +20,15 @@ fn should_ignore(path: &Path) -> bool {
     false
 }
 
+/// Recursively traverses `start_path` and returns all files found.
+///
+/// Skips any path that matches an entry in the ignore file via [`should_ignore`].
+///
+/// # Examples
+///
+/// ```no_run
+/// let files = traverse_files(Path::new("/home/user"));
+/// ```
 pub fn traverse_files(start_path: &Path) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = Vec::new();
     if should_ignore(start_path) {
@@ -36,6 +53,15 @@ pub fn traverse_files(start_path: &Path) -> Vec<PathBuf> {
     files
 }
 
+/// Recursively traverses `start_path` and returns all directories found.
+///
+/// Skips any path that matches an entry in the ignore file via [`should_ignore`].
+///
+/// # Examples
+///
+/// ```no_run
+/// let dirs = traverse_dirs(Path::new("/home/user"));
+/// ```
 pub fn traverse_dirs(start_path: &Path) -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = Vec::new();
     if let Ok(entries) = std::fs::read_dir(start_path) {
@@ -55,6 +81,13 @@ pub fn traverse_dirs(start_path: &Path) -> Vec<PathBuf> {
     dirs
 }
 
+/// Reads the contents of a file and returns each line as a string.
+///
+/// # Examples
+///
+/// ```no_run
+/// let lines = traverse_words(Path::new("/home/user/file.txt"));
+/// ```
 pub fn traverse_words(file_path: &Path) -> Vec<String> {
     file::read_file(&file_path)
 }
