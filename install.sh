@@ -1,5 +1,4 @@
 #!/bin/sh
-
 set -e
 
 BINARY="findit"
@@ -24,8 +23,7 @@ else
     exit 1
 fi
 
-# Automatically detect the latest version tag from your GitHub repository releases
-echo "Fetching latest release version string..."
+echo "Fetching latest release version..."
 VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$VERSION" ]; then
@@ -33,15 +31,15 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-URL="https://github.com/$REPO/releases/download/$VERSION/$BINARY-$TARGET"
+URL="https://github.com/$REPO/releases/download/$VERSION/findit-rs-$TARGET"
 
-echo "Downloading findit $VERSION..."
+echo "Downloading findit $VERSION for $TARGET..."
 curl -sSL "$URL" -o "/tmp/$BINARY"
 chmod +x "/tmp/$BINARY"
 
 echo "Installing to $INSTALL_DIR (may require sudo)..."
 if [ -w "$INSTALL_DIR" ]; then
-    mv "/tmp/$BINARY" "$INSTALL_DIR/$BINARY"ge
+    mv "/tmp/$BINARY" "$INSTALL_DIR/$BINARY"
 else
     sudo mv "/tmp/$BINARY" "$INSTALL_DIR/$BINARY"
 fi

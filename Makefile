@@ -8,7 +8,8 @@ major:
 	cargo test; \
 	git add Cargo.toml Cargo.lock; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
-	git push origin main; \
+	git tag -a "v$$NEW_VERSION" -m "Release v$$NEW_VERSION"; \
+	git push origin main --tags; \
 	cargo publish
 
 minor:
@@ -22,7 +23,8 @@ minor:
 	cargo test; \
 	git add Cargo.toml Cargo.lock; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
-	git push origin main; \
+	git tag -a "v$$NEW_VERSION" -m "Release v$$NEW_VERSION"; \
+	git push origin main --tags; \
 	cargo publish
 
 patch:
@@ -37,5 +39,6 @@ patch:
 	cargo test; \
 	git add Cargo.toml Cargo.lock; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
-	git push origin main; \
+	git tag -a "v$$NEW_VERSION" -m "Release v$$NEW_VERSION"; \
+	git push origin main --tags; \
 	cargo publish
