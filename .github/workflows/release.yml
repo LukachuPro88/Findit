@@ -25,7 +25,9 @@ jobs:
         run: cargo install cross
       - name: Build
         run: cross build --release --target ${{ matrix.target }}
+      - name: Rename binary
+        run: cp target/${{ matrix.target }}/release/findit-rs findit-rs-${{ matrix.target }}
       - name: Upload binary
         uses: softprops/action-gh-release@v2
         with:
-          files: target/${{ matrix.target }}/release/findit-rs
+          files: findit-rs-${{ matrix.target }}

@@ -1,15 +1,4 @@
-//! # findit-rs
-//!
-//! A fast and lightweight file, directory, and word search tool.
-//!
-//! Supports both a CLI and a GUI interface via the `--g` or `gui` flag.
-
-mod cli;
-mod config;
-mod findit;
-mod gui;
-mod utils;
-
+use findit_rs::*;
 /// Returns the Windows path to the findit configuration file.
 ///
 /// Resolves to `%APPDATA%\Findit\config`, falling back to an empty path
