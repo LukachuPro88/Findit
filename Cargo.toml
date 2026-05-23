@@ -8,3 +8,4 @@ repository = "https://github.com/LukachuPro88/findit"
 readme = "README.md"
 
 [dependencies]
+eframe = "0.34.2"
