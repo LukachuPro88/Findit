@@ -5,6 +5,7 @@ major:
 	NEW_VERSION="$$NEW_MAJOR.0.0"; \
 	sed -i "s/^version = \"$$VERSION\"/version = \"$$NEW_VERSION\"/" Cargo.toml; \
 	echo "Bumped version $$VERSION -> $$NEW_VERSION"; \
+	cargo test; \
 	git add Cargo.toml; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
 	git push origin main; \
@@ -18,6 +19,7 @@ minor:
 	NEW_VERSION="$$MAJOR.$$NEW_MINOR.0"; \
 	sed -i "s/^version = \"$$VERSION\"/version = \"$$NEW_VERSION\"/" Cargo.toml; \
 	echo "Bumped version $$VERSION -> $$NEW_VERSION"; \
+	cargo test; \
 	git add Cargo.toml; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
 	git push origin main; \
@@ -32,6 +34,7 @@ patch:
 	NEW_VERSION="$$MAJOR.$$MINOR.$$NEW_PATCH"; \
 	sed -i "s/^version = \"$$VERSION\"/version = \"$$NEW_VERSION\"/" Cargo.toml; \
 	echo "Bumped version $$VERSION -> $$NEW_VERSION"; \
+	cargo test; \
 	git add Cargo.toml; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
 	git push origin main; \
