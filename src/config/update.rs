@@ -1,20 +1,51 @@
 use crate::config::IGNORE_FILE_PATH;
 use crate::utils::file;
 use crate::utils::logger;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-pub fn update_ignore_file_path(path: &str) {
-    let expanded = if path.starts_with("~/") {
-        let home = std::env::var("HOME").unwrap_or_default();
-        path.replacen("~/", &format!("{}/", home), 1)
+#[cfg(target_os = "windows")]
+fn get_platform_config_dir() -> PathBuf {
+    let mut path = PathBuf::from(std::env::var("APPDATA").unwrap_or_default());
+    path.push("Findit");
+    path
+}
+
+#[cfg(not(target_os = "windows"))]
+fn get_platform_config_dir() -> PathBuf {
+    #[allow(deprecated)]
+    let mut path = std::env::home_dir()
+        .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()));
+    path.push(".config");
+    path.push("Findit");
+    path
+}
+
+fn get_home_dir() -> PathBuf {
+    #[allow(deprecated)]
+    std::env::home_dir().unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()))
+}
+
+pub fn update_ignore_file_path(path: &Path) {
+    let mut expanded = PathBuf::new();
+
+    if path.starts_with("~") {
+        expanded.push(get_home_dir());
+        if let Ok(stripped) = path.strip_prefix("~") {
+            expanded.push(stripped);
+        }
     } else {
-        path.to_string()
-    };
+        expanded.push(path);
+    }
+
     let mutex_ref = IGNORE_FILE_PATH.get_or_init(|| Mutex::new(expanded.clone()));
     match mutex_ref.lock() {
         Ok(mut guard) => {
             *guard = expanded.clone();
-            logger::debug(&format!("Ignore file path updated to: {}", expanded));
+            logger::debug(&format!(
+                "Ignore file path updated to: {}",
+                expanded.display()
+            ));
         }
         Err(_) => {
             logger::error("Failed to lock IGNORE_FILE_PATH: Mutex is poisoned");
@@ -23,16 +54,20 @@ pub fn update_ignore_file_path(path: &str) {
 }
 
 pub fn persist_ignore_file_path() {
-    let mutex = IGNORE_FILE_PATH.get_or_init(|| std::sync::Mutex::new(String::new()));
+    let mutex = IGNORE_FILE_PATH.get_or_init(|| Mutex::new(PathBuf::new()));
     let guard = mutex.lock().unwrap();
-    let home = std::env::var("HOME").unwrap_or_default();
-    let config_dir = format!("{}/.config/Findit", home);
-    let config_path = format!("{}/config", config_dir);
+
+    let config_dir = get_platform_config_dir();
+
+    let mut config_path = config_dir.clone();
+    config_path.push("config");
+
     if let Err(e) = std::fs::create_dir_all(&config_dir) {
         logger::error(&format!("Failed to create config directory: {}", e));
         return;
     }
-    if let Err(e) = file::write_file(&config_path, &*guard) {
+
+    if let Err(e) = file::write_file(&config_path, &guard.to_string_lossy()) {
         logger::error(&format!("Failed to persist ignore file path: {}", e));
     }
 }
