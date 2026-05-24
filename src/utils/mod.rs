@@ -95,3 +95,34 @@ pub mod color {
 }
 pub mod file;
 pub mod logger;
+
+// -------- TEST --------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_set_level() {
+        set_level(Level::ERROR);
+        assert!(should_log(Level::ERROR));
+        assert!(!should_log(Level::INFO));
+    }
+
+    #[test]
+    fn test_disable_level() {
+        set_level(Level::DEBUG);
+        disable_level(Level::DEBUG);
+        assert!(!should_log(Level::DEBUG));
+        enable_level(Level::DEBUG);
+    }
+
+    #[test]
+    fn test_toggle() {
+        set_level(Level::SUCCESS);
+        toggle();
+        assert!(!should_log(Level::SUCCESS));
+        toggle();
+        assert!(should_log(Level::SUCCESS));
+    }
+}

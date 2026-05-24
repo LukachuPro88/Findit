@@ -57,16 +57,15 @@ enum Command {
     },
 }
 
-/// Parses the command-line arguments into a [`Command`].
+/// Parses a slice of command-line arguments into a [`Command`].
 ///
 /// # Errors
 ///
 /// Returns `Err` with a usage message if:
 /// - An unknown flag is provided.
 /// - The argument count doesn't match any known pattern.
-fn parse_args() -> Result<Command, String> {
-    let args: Vec<String> = env::args().collect();
-    match args.as_slice() {
+fn parse_args_from(args: &[String]) -> Result<Command, String> {
+    match args {
         [_, flag, arg1, arg2, verbose] if verbose == "--verbose" => match flag.as_str() {
             "--dir" => Ok(Command::Dir {
                 options: SearchOptions {
@@ -119,6 +118,17 @@ fn parse_args() -> Result<Command, String> {
         },
         _ => Err(print_usage()),
     }
+}
+
+/// Parses command-line arguments from [`std::env::args`] into a [`Command`].
+///
+/// # Errors
+///
+/// Returns `Err` with a usage message if parsing fails.
+/// See [`parse_args_from`] for details.
+fn parse_args() -> Result<Command, String> {
+    let args: Vec<String> = env::args().collect();
+    parse_args_from(&args)
 }
 
 /// Enables `INFO` logging when `verbose` is `true`, otherwise sets level to
@@ -209,4 +219,62 @@ fn print_usage() -> String {
     format!(
         "Usage:\n  findit --dir    <start_path> <name>  [--verbose]\n  findit --file   <start_path> <name>  [--verbose]\n  findit --word   <file_path>  <word>  [--verbose]\n  findit --ignore <file_path>"
     )
+}
+
+// -------- TEST --------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args(s: &[&str]) -> Vec<String> {
+        s.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn test_parse_dir() {
+        let result = parse_args_from(&args(&["findit", "--dir", "/home", "src"]));
+        assert!(matches!(result, Ok(Command::Dir { .. })));
+    }
+
+    #[test]
+    fn test_parse_file() {
+        let result = parse_args_from(&args(&["findit", "--file", "/home", "main.rs"]));
+        assert!(matches!(result, Ok(Command::File { .. })));
+    }
+
+    #[test]
+    fn test_parse_word() {
+        let result = parse_args_from(&args(&["findit", "--word", "/home/file.txt", "fn"]));
+        assert!(matches!(result, Ok(Command::Word { .. })));
+    }
+
+    #[test]
+    fn test_parse_ignore() {
+        let result = parse_args_from(&args(&["findit", "--ignore", "/home/.finditignore"]));
+        assert!(matches!(result, Ok(Command::Ignore { .. })));
+    }
+
+    #[test]
+    fn test_parse_verbose() {
+        let result = parse_args_from(&args(&["findit", "--dir", "/home", "src", "--verbose"]));
+        assert!(matches!(
+            result,
+            Ok(Command::Dir {
+                options: SearchOptions { verbose: true, .. }
+            })
+        ));
+    }
+
+    #[test]
+    fn test_parse_unknown_flag() {
+        let result = parse_args_from(&args(&["findit", "--unknown", "/home", "src"]));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_no_args() {
+        let result = parse_args_from(&args(&["findit"]));
+        assert!(result.is_err());
+    }
 }
