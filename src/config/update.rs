@@ -97,3 +97,31 @@ pub fn persist_ignore_file_path() {
         logger::error(&format!("Failed to persist ignore file path: {}", e));
     }
 }
+
+// -------- TEST --------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_update_ignore_file_path_plain() {
+        let path = std::path::Path::new("/home/user/.finditignore");
+        update_ignore_file_path(path);
+        let mutex =
+            crate::config::IGNORE_FILE_PATH.get_or_init(|| std::sync::Mutex::new(PathBuf::new()));
+        let guard = mutex.lock().unwrap();
+        assert_eq!(*guard, PathBuf::from("/home/user/.finditignore"));
+    }
+
+    #[test]
+    fn test_update_ignore_file_path_tilde() {
+        let path = std::path::Path::new("~/.finditignore");
+        update_ignore_file_path(path);
+        let mutex =
+            crate::config::IGNORE_FILE_PATH.get_or_init(|| std::sync::Mutex::new(PathBuf::new()));
+        let guard = mutex.lock().unwrap();
+        assert!(!guard.starts_with("~"));
+        assert!(guard.ends_with(".finditignore"));
+    }
+}

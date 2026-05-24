@@ -44,3 +44,44 @@ pub fn read_file(file_path: &Path) -> Vec<String> {
 pub fn write_file(file_path: &Path, content: &str) -> std::io::Result<()> {
     fs::write(file_path, content)
 }
+
+// -------- TEST --------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_read_file_returns_words() {
+        let dir = tempdir().unwrap();
+        let file = dir.path().join("test.txt");
+        fs::write(&file, "hello world foo bar").unwrap();
+        let words = read_file(&file);
+        assert_eq!(words, vec!["hello", "world", "foo", "bar"]);
+    }
+
+    #[test]
+    fn test_read_file_missing_returns_empty() {
+        let result = read_file(std::path::Path::new("/nonexistent/file.txt"));
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_write_file_creates_file() {
+        let dir = tempdir().unwrap();
+        let file = dir.path().join("output.txt");
+        write_file(&file, "hello").unwrap();
+        assert_eq!(fs::read_to_string(&file).unwrap(), "hello");
+    }
+
+    #[test]
+    fn test_write_file_overwrites() {
+        let dir = tempdir().unwrap();
+        let file = dir.path().join("output.txt");
+        write_file(&file, "first").unwrap();
+        write_file(&file, "second").unwrap();
+        assert_eq!(fs::read_to_string(&file).unwrap(), "second");
+    }
+}
