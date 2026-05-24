@@ -59,6 +59,10 @@ node_modules
 
 Set your ignore file once with `findit --ignore <path>` and it will persist across sessions.
 
+## GUI
+
+To use the GUI version just run `findit --g` or `findit gui`
+
 ---
 
 ## Installation
@@ -68,11 +72,15 @@ Set your ignore file once with `findit --ignore <path>` and it will persist acro
 cargo install findit-rs
 ```
 
-### curl
+### curl (Unix)
 ```
-curl -sSL https://raw.githubusercontent.com/LukachuPro88/Findit/main/install.sh | sh
+curl -sSf https://raw.githubusercontent.com/LukachuPro88/Findit/main/install.sh | sh
 ```
 
+### irm (Windows)
+```
+irm https://raw.githubusercontent.com/LukachuPro88/Findit/main/install.ps1 | iex
+```
 ---
 
 ## License

@@ -38,10 +38,10 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
       - name: Rename binary (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: cp target/${{ matrix.target }}/release/findit-rs findit-rs-${{ matrix.target }}
+        run: cp target/${{ matrix.target }}/release/findit findit-rs-${{ matrix.target }}
       - name: Rename binary (Windows)
         if: matrix.os == 'windows-latest'
-        run: cp target/${{ matrix.target }}/release/findit-rs.exe findit-rs-${{ matrix.target }}.exe
+        run: cp target/${{ matrix.target }}/release/findit.exe findit-rs-${{ matrix.target }}.exe
       - name: Upload binary
         uses: softprops/action-gh-release@v2
         with:
