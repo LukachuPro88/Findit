@@ -64,12 +64,6 @@ enum Command {
 /// Returns `Err` with a usage message if:
 /// - An unknown flag is provided.
 /// - The argument count doesn't match any known pattern.
-///
-/// # Examples
-///
-/// ```no_run
-/// parse_args(); // Called internally from main_cli
-/// ```
 fn parse_args() -> Result<Command, String> {
     let args: Vec<String> = env::args().collect();
     match args.as_slice() {
@@ -143,12 +137,6 @@ fn set_verbose(verbose: bool) {
 /// [`Command::Word`], or [`Command::Ignore`].
 ///
 /// Prints a usage message to stdout if argument parsing fails.
-///
-/// # Examples
-///
-/// ```no_run
-/// findit::cli::cli::main_cli();
-/// ```
 pub fn main_cli() {
     match parse_args() {
         Ok(command) => match command {

@@ -27,6 +27,8 @@ fn should_ignore(path: &Path) -> bool {
 /// # Examples
 ///
 /// ```no_run
+/// use std::path::Path;
+/// use findit_rs::findit::crawler::crawler::traverse_files;
 /// let files = traverse_files(Path::new("/home/user"));
 /// ```
 pub fn traverse_files(start_path: &Path) -> Vec<PathBuf> {
@@ -60,6 +62,8 @@ pub fn traverse_files(start_path: &Path) -> Vec<PathBuf> {
 /// # Examples
 ///
 /// ```no_run
+/// use std::path::Path;
+/// use findit_rs::findit::crawler::crawler::traverse_dirs;
 /// let dirs = traverse_dirs(Path::new("/home/user"));
 /// ```
 pub fn traverse_dirs(start_path: &Path) -> Vec<PathBuf> {
@@ -86,6 +90,8 @@ pub fn traverse_dirs(start_path: &Path) -> Vec<PathBuf> {
 /// # Examples
 ///
 /// ```no_run
+/// use std::path::Path;
+/// use findit_rs::findit::crawler::crawler::traverse_words;
 /// let lines = traverse_words(Path::new("/home/user/file.txt"));
 /// ```
 pub fn traverse_words(file_path: &Path) -> Vec<String> {
