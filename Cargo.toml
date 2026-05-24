@@ -1,6 +1,6 @@
 [package]
 name = "findit-rs"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2024"
 description = "A fast, lightweight command-line filesystem search tool"
 license = "MIT"
