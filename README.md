@@ -24,10 +24,10 @@ findit --file . main.rs
 
 ### Search for a word in a file
 ```
-findit --word <file_path> <word>
+findit --word <start_path> <word>
 ```
 ```
-findit --word ./src/main.rs fn
+findit --word ./src/ fn
 ```
 
 ### Set ignore file
