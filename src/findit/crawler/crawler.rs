@@ -1,6 +1,6 @@
 //! # crawler
 //!
-//! Crawler traverses directories and adds each element to the list of elements to search.
+// traverses directories and adds each element to the list of elements to search.
 use crate::utils::{file, logger};
 use rayon::prelude::*;
 use std::path::{Path, PathBuf};
@@ -90,17 +90,35 @@ pub fn traverse_dirs(start_path: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-/// Reads the contents of a file and returns each line as a string.
+/// Recursively traverses a directory tree to read all lines from non-ignored files,
+/// formatting each line with its file path and line number for downstream filtering.
 ///
 /// # Examples
 ///
 /// ```no_run
 /// use std::path::Path;
 /// use findit_rs::findit::crawler::crawler::traverse_words;
-/// let lines = traverse_words(Path::new("/home/user/file.txt"));
+/// let raw_lines = traverse_words(Path::new("/home/user/project"));
 /// ```
-pub fn traverse_words(file_path: &Path) -> Vec<String> {
-    file::read_file(file_path)
+pub fn traverse_words(dir_path: &Path) -> Vec<String> {
+    let mut files = self::traverse_files(dir_path);
+    files.sort();
+
+    files
+        .into_iter()
+        .flat_map(|file_path| {
+            let path_str = file_path.to_string_lossy().into_owned();
+            let lines = file::read_file(&file_path);
+
+            lines
+                .into_iter()
+                .enumerate()
+                .map(move |(idx, line_text)| {
+                    format!("{}:Line {}: {}", path_str, idx + 1, line_text.trim_end())
+                })
+                .collect::<Vec<String>>()
+        })
+        .collect()
 }
 
 // -------- TEST --------
@@ -174,14 +192,21 @@ mod tests {
         let file = dir.path().join("test.txt");
         fs::write(&file, "hello world\nfoo bar").unwrap();
 
-        let words = traverse_words(&file);
+        let words = traverse_words(dir.path());
         assert!(!words.is_empty());
-        assert!(words.contains(&"hello".to_string()));
-    }
 
+        let target_match = format!("{}:Line 1: hello world", file.display());
+        let found = words.iter().any(|line| line == &target_match);
+
+        for w in &words {
+            logger::debug(&format!("output {:?}", w));
+        }
+
+        assert!(found);
+    }
     #[test]
     fn test_traverse_words_missing_file() {
-        let result = traverse_words(std::path::Path::new("/nonexistent/file.txt"));
+        let result = traverse_words(std::path::Path::new("/nonexistent/directory"));
         assert!(result.is_empty());
     }
 }

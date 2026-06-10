@@ -60,14 +60,8 @@ pub fn get_search_result(mode: SearchMode, keyword: &str, start: &str) -> Vec<St
                 .collect()
         }
         SearchMode::Word => {
-            let words = crawler::traverse_words(path);
-
-            words
-                .iter()
-                .enumerate()
-                .filter(|(_, line)| line.contains(keyword))
-                .map(|(line_num, line_text)| format!("Line {}: {}", line_num + 1, line_text.trim()))
-                .collect()
+            let raw_lines = crawler::traverse_words(path);
+            filter::filter_words(raw_lines, keyword)
         }
     }
 }
@@ -163,3 +157,4 @@ impl eframe::App for Gui {
         });
     }
 }
+

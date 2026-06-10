@@ -8,7 +8,7 @@
 //!
 //! - `--dir <start_path> <name>` — Search for a directory by name.
 //! - `--file <start_path> <name>` — Search for a file by name.
-//! - `--word <file_path> <word>` — Search for a word in a file.
+//! - `--word <start_path> <word>` — Search for a word within all files under a directory tree.
 //! - `--ignore <file_path>` — Set the ignore file path.
 //!
 //! All commands except `--ignore` support an optional `--verbose` flag.
@@ -43,8 +43,8 @@ enum Command {
     },
     /// Word search command.
     Word {
-        /// The file path to search in.
-        file_path: PathBuf,
+        /// The base directory path to search inside.
+        start_path: PathBuf,
         /// The word to search for.
         word: String,
         /// Enable verbose output.
@@ -82,7 +82,7 @@ fn parse_args_from(args: &[String]) -> Result<Command, String> {
                 },
             }),
             "--word" => Ok(Command::Word {
-                file_path: PathBuf::from(arg1),
+                start_path: PathBuf::from(arg1),
                 word: arg2.clone(),
                 verbose: true,
             }),
@@ -104,7 +104,7 @@ fn parse_args_from(args: &[String]) -> Result<Command, String> {
                 },
             }),
             "--word" => Ok(Command::Word {
-                file_path: PathBuf::from(arg1),
+                start_path: PathBuf::from(arg1),
                 word: arg2.clone(),
                 verbose: false,
             }),
@@ -180,27 +180,35 @@ pub fn main_cli() {
                 }
             }
             Command::Word {
-                file_path,
+                start_path,
                 word,
                 verbose,
             } => {
                 set_verbose(verbose);
-                if !file_path.exists() {
-                    logger::error(&format!("File '{}' not found", file_path.display()));
+                if !start_path.exists() {
+                    logger::error(&format!(
+                        "Directory path '{}' not found",
+                        start_path.display()
+                    ));
                     return;
                 }
-                let lines = crawler::traverse_words(&file_path);
-                let matching_lines: Vec<(usize, &String)> = lines
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, line)| line.contains(word.as_str()))
-                    .collect();
+
+                // 1. Crawler gathers all absolute file paths and reads lines recursively
+                let raw_lines = crawler::traverse_words(&start_path);
+
+                // 2. Filter isolates items that match the target string keyword
+                let matching_lines = filter::filter_words(raw_lines, &word);
+
                 if matching_lines.is_empty() {
-                    logger::error(&format!("Word '{}' not found", word));
+                    logger::error(&format!("Word '{}' not found in directory tree", word));
                 } else {
-                    logger::success(&format!("Word '{}' found:", word));
-                    for (i, line) in &matching_lines {
-                        logger::success(&format!("  ~ {}: {}", i + 1, line));
+                    logger::success(&format!(
+                        "Found {} occurrences of '{}':",
+                        matching_lines.len(),
+                        word
+                    ));
+                    for line in &matching_lines {
+                        logger::success(&format!("  ~ {}", line));
                     }
                 }
             }
@@ -216,11 +224,8 @@ pub fn main_cli() {
 
 /// Returns the usage message string.
 fn print_usage() -> String {
-    format!(
-        "Usage:\n  findit --dir    <start_path> <name>  [--verbose]\n  findit --file   <start_path> <name>  [--verbose]\n  findit --word   <file_path>  <word>  [--verbose]\n  findit --ignore <file_path>"
-    )
+    "Usage:\n  findit --dir    <start_path> <name>   [--verbose]\n  findit --file   <start_path> <name>   [--verbose]\n  findit --word   <start_path> <word>   [--verbose]\n  findit --ignore <file_path>".to_string()
 }
-
 // -------- TEST --------
 
 #[cfg(test)]
@@ -245,7 +250,7 @@ mod tests {
 
     #[test]
     fn test_parse_word() {
-        let result = parse_args_from(&args(&["findit", "--word", "/home/file.txt", "fn"]));
+        let result = parse_args_from(&args(&["findit", "--word", "/home/project", "fn"]));
         assert!(matches!(result, Ok(Command::Word { .. })));
     }
 

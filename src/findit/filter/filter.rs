@@ -1,6 +1,6 @@
 //! # filter
 //!
-//! Filters a list of [`std::path::PathBuf`] items based on a target string.
+//! Filters a list of items based on a target string.
 
 use rayon::prelude::*;
 
@@ -25,6 +25,24 @@ pub fn filter<T: AsRef<str> + Sync>(
                     }
                 })
                 .unwrap_or(false)
+        })
+        .collect()
+}
+
+/// Filters `lines` to those that contain the `target` keyword.
+///
+/// Matching is case-insensitive on Windows and case-sensitive on Unix.
+pub fn filter_words<T: AsRef<str> + Sync>(lines: Vec<String>, target: T) -> Vec<String> {
+    let target_str = target.as_ref();
+    let target_lower = target_str.to_lowercase();
+    lines
+        .into_par_iter()
+        .filter(|line| {
+            if cfg!(target_os = "windows") {
+                line.to_lowercase().contains(&target_lower)
+            } else {
+                line.contains(target_str)
+            }
         })
         .collect()
 }
@@ -71,4 +89,23 @@ mod tests {
         let result = filter(items, "main.rs");
         assert_eq!(result.len(), 2);
     }
+
+    #[test]
+    fn test_filter_words_matches() {
+        let lines = vec![
+            "src/main.rs:Line 1: fn main() {".to_string(),
+            "src/lib.rs:Line 5: // setup code".to_string(),
+        ];
+        let result = filter_words(lines, "main()");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0], "src/main.rs:Line 1: fn main() {");
+    }
+
+    #[test]
+    fn test_filter_words_no_match() {
+        let lines = vec!["src/main.rs:Line 1: fn main() {".to_string()];
+        let result = filter_words(lines, "missing_keyword");
+        assert!(result.is_empty());
+    }
 }
+
