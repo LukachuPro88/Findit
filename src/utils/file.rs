@@ -31,11 +31,10 @@ pub fn read_ignore_file() -> std::io::Result<Vec<String>> {
 pub fn read_file(file_path: &Path) -> Vec<String> {
     fs::read_to_string(file_path)
         .unwrap_or_default()
-        .split_whitespace()
-        .map(|w| w.to_string())
+        .lines()
+        .map(|l| l.to_string())
         .collect()
 }
-
 /// Writes `content` to the given file path, creating or overwriting it.
 ///
 /// # Errors
@@ -59,7 +58,7 @@ mod tests {
         let file = dir.path().join("test.txt");
         fs::write(&file, "hello world foo bar").unwrap();
         let words = read_file(&file);
-        assert_eq!(words, vec!["hello", "world", "foo", "bar"]);
+        assert_eq!(words, vec!["hello world foo bar"]);
     }
 
     #[test]
