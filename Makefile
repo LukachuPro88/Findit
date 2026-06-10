@@ -5,7 +5,7 @@ major:
 	NEW_VERSION="$$NEW_MAJOR.0.0"; \
 	sed -i "s/^version = \"$$VERSION\"/version = \"$$NEW_VERSION\"/" Cargo.toml; \
 	echo "Bumped version $$VERSION -> $$NEW_VERSION"; \
-	cargo test; \
+	cargo test -- --test-threads=1; \
 	git add Cargo.toml Cargo.lock; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
 	git tag -a "v$$NEW_VERSION" -m "Release v$$NEW_VERSION"; \
@@ -20,7 +20,7 @@ minor:
 	NEW_VERSION="$$MAJOR.$$NEW_MINOR.0"; \
 	sed -i "s/^version = \"$$VERSION\"/version = \"$$NEW_VERSION\"/" Cargo.toml; \
 	echo "Bumped version $$VERSION -> $$NEW_VERSION"; \
-	cargo test; \
+	cargo test -- --test-threads=1; \
 	git add Cargo.toml Cargo.lock; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
 	git tag -a "v$$NEW_VERSION" -m "Release v$$NEW_VERSION"; \
@@ -36,7 +36,7 @@ patch:
 	NEW_VERSION="$$MAJOR.$$MINOR.$$NEW_PATCH"; \
 	sed -i "s/^version = \"$$VERSION\"/version = \"$$NEW_VERSION\"/" Cargo.toml; \
 	echo "Bumped version $$VERSION -> $$NEW_VERSION"; \
-	cargo test; \
+	cargo test -- --test-threads=1; \
 	git add Cargo.toml Cargo.lock; \
 	git commit -m "Bump version to $$NEW_VERSION"; \
 	git tag -a "v$$NEW_VERSION" -m "Release v$$NEW_VERSION"; \

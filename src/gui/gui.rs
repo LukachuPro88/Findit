@@ -6,6 +6,7 @@ use crate::findit::crawler::crawler;
 use crate::findit::filter::filter;
 use eframe::egui;
 use std::path::Path;
+use std::sync::mpsc::{Receiver, channel};
 
 /// The search mode selected in the GUI.
 #[derive(PartialEq, Clone, Copy)]
@@ -28,6 +29,8 @@ pub struct Gui {
     search_result: Vec<String>,
     /// The current search mode.
     search_mode: SearchMode,
+    rx: Option<Receiver<Vec<String>>>,
+    is_searching: bool,
 }
 
 /// Performs a search based on `mode` and returns the results as strings.
@@ -76,24 +79,37 @@ impl Default for Gui {
             search_keyword: String::new(),
             search_result: Vec::new(),
             search_mode: SearchMode::Dir,
+            rx: None,
+            is_searching: false,
         }
     }
 }
 
 impl eframe::App for Gui {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        if let Some(Ok(results)) = self.rx.as_ref().map(|rx| rx.try_recv()) {
+            self.search_result = results;
+            self.is_searching = false;
+            self.rx = None;
+        }
+
         egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.heading("Findit");
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
                 ui.label("Start Directory:");
-                ui.text_edit_singleline(&mut self.search_start);
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.search_start).desired_width(f32::INFINITY),
+                );
             });
 
             ui.horizontal(|ui| {
                 ui.label("Search Keyword:");
-                ui.text_edit_singleline(&mut self.search_keyword);
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.search_keyword)
+                        .desired_width(f32::INFINITY),
+                );
             });
 
             ui.add_space(8.0);
@@ -106,17 +122,34 @@ impl eframe::App for Gui {
 
             ui.add_space(10.0);
 
-            if ui.button("Search").clicked() {
-                if !self.search_start.is_empty() {
-                    self.search_result = get_search_result(
-                        self.search_mode,
-                        &self.search_keyword,
-                        &self.search_start,
-                    );
-                } else {
-                    self.search_result = vec!["Please specify a starting directory.".to_string()];
+            ui.horizontal(|ui| {
+                ui.add_enabled_ui(!self.is_searching, |ui| {
+                    if ui.button("Search").clicked() {
+                        if !self.search_start.is_empty() {
+                            let (tx, rx) = channel();
+                            self.rx = Some(rx);
+                            self.is_searching = true;
+
+                            let mode = self.search_mode;
+                            let keyword = self.search_keyword.clone();
+                            let start = self.search_start.clone();
+
+                            std::thread::spawn(move || {
+                                let results = get_search_result(mode, &keyword, &start);
+                                let _ = tx.send(results);
+                            });
+                        } else {
+                            self.search_result =
+                                vec!["Please specify a starting directory.".to_string()];
+                        }
+                    }
+                });
+
+                if self.is_searching {
+                    ui.add(egui::Spinner::new());
+                    ui.label("Searching...");
                 }
-            }
+            });
 
             ui.add_space(10.0);
             ui.separator();
