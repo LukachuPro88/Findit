@@ -23,11 +23,12 @@ Write-Host "Installing to $INSTALL_DIR..."
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
 Move-Item -Force $TMP "$INSTALL_DIR\$BINARY.exe"
 
-# Add to PATH if not already there
-$PATH = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($PATH -notlike "*$INSTALL_DIR*") {
-    [Environment]::SetEnvironmentVariable("Path", "$PATH;$INSTALL_DIR", "User")
-    Write-Host "Added $INSTALL_DIR to PATH."
+# Add to PATH safely by evaluating the current registry state directly
+$CURRENT_REG_PATH = [Environment]::GetEnvironmentVariable("Path", "User")
+if ($CURRENT_REG_PATH -split ';' -notcontains $INSTALL_DIR) {
+    $NEW_PATH = if ([string]::IsNullOrEmpty($CURRENT_REG_PATH)) { $INSTALL_DIR } else { "$CURRENT_REG_PATH;$INSTALL_DIR" }
+    [Environment]::SetEnvironmentVariable("Path", $NEW_PATH, "User")
+    Write-Host "Added $INSTALL_DIR to User PATH."
 }
 
 Write-Host "findit installed successfully!"
