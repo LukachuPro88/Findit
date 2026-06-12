@@ -8,9 +8,9 @@ repository = "https://github.com/LukachuPro88/findit"
 readme = "README.md"
 documentation = "https://docs.rs/findit-rs"
 
-[[bin]]
+[lib]
 name = "findit"
-path = "src/main.rs"
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
 eframe = "0.34.2"
