@@ -2,24 +2,35 @@
 //!
 // traverses directories and adds each element to the list of elements to search.
 use crate::utils::{file, logger};
-use rayon::prelude::*;
 use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
 
-fn should_ignore(path: &Path) -> bool {
-    if let Ok(contents) = crate::utils::file::read_ignore_file() {
-        for line in contents.iter() {
-            if !line.is_empty() && path.to_string_lossy().contains(line.as_str()) {
-                return true;
-            }
+fn get_ignore_list() -> Vec<String> {
+    crate::utils::file::read_ignore_file().unwrap_or_default()
+}
+
+fn should_ignore(path: &Path, ignore_list: &[String]) -> bool {
+    let path_str = path.to_string_lossy();
+    for pattern in ignore_list {
+        if !pattern.is_empty() && path_str.contains(pattern) {
+            return true;
         }
     }
     false
 }
 
+// Fast global check to block infinite system directories
+fn is_system_dir(path: &Path) -> bool {
+    path.starts_with("/proc")
+        || path.starts_with("/sys")
+        || path.starts_with("/dev")
+        || path.starts_with("/run")
+}
+
 /// Traverses `start_path` and returns all files found.
 ///
-/// Uses parallel iteration via [`rayon`] for performance on large directory trees.
-/// Skips any path that matches an entry in the ignore file via [`should_ignore`].
+/// Uses sequential iteration via [`walkdir`] for performance on large directory trees.
+/// Skips any path that matches an entry in the ignore file via [`should_ignore`] or virtual system mounts.
 ///
 /// # Examples
 ///
@@ -29,35 +40,50 @@ fn should_ignore(path: &Path) -> bool {
 /// let files = traverse_files(Path::new("/home/user"));
 /// ```
 pub fn traverse_files(start_path: &Path) -> Vec<PathBuf> {
-    if should_ignore(start_path) {
+    let ignore_list = get_ignore_list();
+
+    if should_ignore(start_path, &ignore_list) || is_system_dir(start_path) {
+        logger::info(&format!("Ignoring '{}'", start_path.display()));
         return vec![];
     }
-    let entries: Vec<_> = match std::fs::read_dir(start_path) {
-        Ok(e) => e.flatten().collect(),
-        Err(_) => return vec![],
-    };
-    entries
-        .into_par_iter()
-        .flat_map(|entry| {
+
+    let mut filenames = Vec::new();
+    let mut it = WalkDir::new(start_path)
+        .min_depth(1)
+        .follow_links(false)
+        .into_iter();
+
+    while let Some(entry) = it.next() {
+        if let Ok(entry) = entry {
             let path = entry.path();
-            if should_ignore(&path) {
-                logger::info(&format!("Ignoring '{}'", path.display()));
-                vec![]
-            } else if path.is_dir() {
-                logger::info(&format!("Dir '{}', opening", path.display()));
-                traverse_files(&path)
-            } else {
-                logger::info(&format!("File '{}', adding", path.display()));
-                vec![path]
+
+            // PRUNE: Skip system loops before entering them
+            if is_system_dir(path) {
+                it.skip_current_dir();
+                continue;
             }
-        })
-        .collect()
+
+            if should_ignore(path, &ignore_list) {
+                logger::info(&format!("Ignoring '{}'", path.display()));
+                if path.is_dir() {
+                    it.skip_current_dir();
+                }
+            } else if path.is_file() {
+                logger::info(&format!("File '{}', adding", path.display()));
+                filenames.push(path.to_path_buf());
+            } else {
+                logger::info(&format!("Dir '{}', opening", path.display()));
+            }
+        }
+    }
+
+    filenames
 }
 
 /// Traverses `start_path` and returns all directories found.
 ///
-/// Uses parallel iteration via [`rayon`] for performance on large directory trees.
-/// Skips any path that matches an entry in the ignore file via [`should_ignore`].
+/// Uses sequential iteration via [`walkdir`] for performance on large directory trees.
+/// Skips any path that matches an entry in the ignore file via [`should_ignore`] or virtual system mounts.
 ///
 /// # Examples
 ///
@@ -67,30 +93,45 @@ pub fn traverse_files(start_path: &Path) -> Vec<PathBuf> {
 /// let dirs = traverse_dirs(Path::new("/home/user"));
 /// ```
 pub fn traverse_dirs(start_path: &Path) -> Vec<PathBuf> {
-    let entries: Vec<_> = match std::fs::read_dir(start_path) {
-        Ok(e) => e.flatten().collect(),
-        Err(_) => return vec![],
-    };
-    entries
-        .into_par_iter()
-        .flat_map(|entry| {
+    let ignore_list = get_ignore_list();
+
+    if should_ignore(start_path, &ignore_list) || is_system_dir(start_path) {
+        logger::info(&format!("Ignoring '{}'", start_path.display()));
+        return vec![];
+    }
+
+    let mut dirnames = Vec::new();
+    let mut it = WalkDir::new(start_path)
+        .min_depth(1)
+        .follow_links(false)
+        .into_iter();
+
+    while let Some(entry) = it.next() {
+        if let Ok(entry) = entry {
             let path = entry.path();
-            if should_ignore(&path) {
+
+            // PRUNE: Skip system loops before entering them
+            if is_system_dir(path) {
+                it.skip_current_dir();
+                continue;
+            }
+
+            if should_ignore(path, &ignore_list) {
                 logger::info(&format!("Ignoring '{}'", path.display()));
-                vec![]
+                if path.is_dir() {
+                    it.skip_current_dir();
+                }
             } else if path.is_dir() {
                 logger::info(&format!("Dir '{}', adding", path.display()));
-                let mut dirs = traverse_dirs(&path);
-                dirs.push(path);
-                dirs
-            } else {
-                vec![]
+                dirnames.push(path.to_path_buf());
             }
-        })
-        .collect()
+        }
+    }
+
+    dirnames
 }
 
-/// Recursively traverses a directory tree to read all lines from non-ignored files,
+/// Sequentially traverses a directory tree to read all lines from non-ignored files,
 /// formatting each line with its file path and line number for downstream filtering.
 ///
 /// # Examples
