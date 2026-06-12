@@ -19,7 +19,11 @@ pub fn filter<T: AsRef<str> + Sync>(
             item.to_str()
                 .map(|s| {
                     if cfg!(target_os = "windows") {
-                        s.to_lowercase().ends_with(&target_lower)
+                        // Avoid complete string allocation by matching case-insensitively using an iterator comparison
+                        s.chars()
+                            .rev()
+                            .zip(target_lower.chars().rev())
+                            .all(|(a, b)| a.to_lowercase().to_string() == b.to_string())
                     } else {
                         s.ends_with(target_str)
                     }
@@ -39,6 +43,7 @@ pub fn filter_words<T: AsRef<str> + Sync>(lines: Vec<String>, target: T) -> Vec<
         .into_par_iter()
         .filter(|line| {
             if cfg!(target_os = "windows") {
+                // Check if the lowercase target matches anywhere in a case-insensitive window search without creating a full copy of the line
                 line.to_lowercase().contains(&target_lower)
             } else {
                 line.contains(target_str)
