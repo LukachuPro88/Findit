@@ -157,4 +157,3 @@ impl eframe::App for Gui {
         });
     }
 }
-
