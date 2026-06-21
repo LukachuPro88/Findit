@@ -4,7 +4,7 @@ task shared_release_pipeline {
     ask next_version "Confirm version to tag (e.g. 1.0.0): "
 
     confirm "Are you sure you want to publish this version?" {
-        exec "sed -i \"s/^version = \\\".*\\\"/version = \\\"\"" + next_version + "\"\\\"/\" Cargo.toml"
+        exec "./bump.sh" + next_version
         exec "cargo test -- --test-threads=1"
         exec "git add Cargo.toml Cargo.lock"
         exec "git commit -m '" + git_msg + next_version + "'"
